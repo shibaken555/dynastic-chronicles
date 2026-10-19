@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model PlaySession {
+  id          Int       @id @default(autoincrement())
+  publicId    String    @unique @map("public_id") @db.VarChar(14)
+  title       String
+  countryName String    @map("country_name")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  monarches   Monarch[]
+}
+
+model Monarch {
+  id          Int         @id @default(autoincrement())
+  publicId    String      @unique @map("public_id") @db.VarChar(14)
+  playSession PlaySession @relation(fields: [playId], references: [id])
+  playId      Int         @map("play_id")
+  name        String
+  history     String?
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz()
+}

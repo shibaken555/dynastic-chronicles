@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:18
+    container_name: dynastic-chronicles-db
+    environment:
+      POSTGRES_DB: dynastic_chronicles
+      POSTGRES_USER: dynastic_chronicles_user
+      POSTGRES_PASSWORD: dynastic_chronicles_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql
+volumes:
+  db-data:
