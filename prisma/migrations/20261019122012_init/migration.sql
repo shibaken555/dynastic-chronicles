@@ -4,7 +4,7 @@ CREATE TABLE "PlaySession" (
     "public_id" VARCHAR(14) NOT NULL,
     "title" TEXT NOT NULL,
     "country_name" TEXT NOT NULL,
-    "created_at" TIMESTAMPTZ NOT NULL,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ NOT NULL,
 
     CONSTRAINT "PlaySession_pkey" PRIMARY KEY ("id")
@@ -17,7 +17,7 @@ CREATE TABLE "Monarch" (
     "play_id" INTEGER NOT NULL,
     "name" TEXT NOT NULL,
     "history" TEXT,
-    "created_at" TIMESTAMPTZ NOT NULL,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ NOT NULL,
 
     CONSTRAINT "Monarch_pkey" PRIMARY KEY ("id")

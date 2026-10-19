@@ -12,8 +12,8 @@ model PlaySession {
   publicId    String    @unique @map("public_id") @db.VarChar(14)
   title       String
   countryName String    @map("country_name")
-  createdAt   DateTime  @map("created_at") @db.Timestamptz()
-  updatedAt   DateTime  @map("updated_at") @db.Timestamptz()
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
   monarches   Monarch[]
 }
 
@@ -24,6 +24,6 @@ model Monarch {
   playId      Int         @map("play_id")
   name        String
   history     String?
-  createdAt   DateTime    @map("created_at") @db.Timestamptz()
-  updatedAt   DateTime    @map("updated_at") @db.Timestamptz()
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz()
 }
