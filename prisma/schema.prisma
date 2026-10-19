@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -10,4 +5,25 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+model PlaySession {
+  id          Int       @id @default(autoincrement())
+  publicId    String    @unique @map("public_id") @db.VarChar(14)
+  title       String
+  countryName String    @map("country_name")
+  createdAt   DateTime  @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime  @map("updated_at") @db.Timestamptz()
+  monarches   Monarch[]
+}
+
+model Monarch {
+  id          Int         @id @default(autoincrement())
+  publicId    String      @unique @map("public_id") @db.VarChar(14)
+  playSession PlaySession @relation(fields: [playId], references: [id])
+  playId      Int         @map("play_id")
+  name        String
+  history     String?
+  createdAt   DateTime    @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime    @map("updated_at") @db.Timestamptz()
 }
