@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE "PlaySession" (
+CREATE TABLE "play_sessions" (
     "id" SERIAL NOT NULL,
     "public_id" VARCHAR(14) NOT NULL,
     "title" TEXT NOT NULL,
@@ -7,11 +7,11 @@ CREATE TABLE "PlaySession" (
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ NOT NULL,
 
-    CONSTRAINT "PlaySession_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "play_sessions_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "Monarch" (
+CREATE TABLE "monarchs" (
     "id" SERIAL NOT NULL,
     "public_id" VARCHAR(14) NOT NULL,
     "play_id" INTEGER NOT NULL,
@@ -20,14 +20,14 @@ CREATE TABLE "Monarch" (
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ NOT NULL,
 
-    CONSTRAINT "Monarch_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "monarchs_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "PlaySession_public_id_key" ON "PlaySession"("public_id");
+CREATE UNIQUE INDEX "play_sessions_public_id_key" ON "play_sessions"("public_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Monarch_public_id_key" ON "Monarch"("public_id");
+CREATE UNIQUE INDEX "monarchs_public_id_key" ON "monarchs"("public_id");
 
 -- AddForeignKey
-ALTER TABLE "Monarch" ADD CONSTRAINT "Monarch_play_id_fkey" FOREIGN KEY ("play_id") REFERENCES "PlaySession"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "monarchs" ADD CONSTRAINT "monarchs_play_id_fkey" FOREIGN KEY ("play_id") REFERENCES "play_sessions"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

@@ -7,7 +7,7 @@ async function main() {
       publicId: "pls_a1b2c3d4e5",
       title: "織田 1周目",
       countryName:"織田",
-      monarches: {
+      monarchs: {
         create: {
           publicId: "mon_a1b2c3d4e5",
           name: "織田信長",
@@ -16,7 +16,7 @@ async function main() {
       },
     },
     include: {
-      monarches: true,
+      monarchs: true,
     },
   });
   console.log("Created user:", playSession);
@@ -24,7 +24,7 @@ async function main() {
   // Fetch all users with their posts
   const allSessions = await prisma.playSession.findMany({
     include: {
-      monarches: true,
+      monarchs: true,
     },
   });
   console.log("All playSessions:", JSON.stringify(allSessions, null, 2));
