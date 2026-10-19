@@ -14,7 +14,9 @@ model PlaySession {
   countryName String    @map("country_name")
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-  monarches   Monarch[]
+  monarchs    Monarch[]
+
+  @@map("play_sessions")
 }
 
 model Monarch {
@@ -26,4 +28,6 @@ model Monarch {
   history     String?
   createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@map("monarchs")
 }
