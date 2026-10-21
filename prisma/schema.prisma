@@ -20,14 +20,65 @@ model PlaySession {
 }
 
 model Monarch {
-  id          Int         @id @default(autoincrement())
-  publicId    String      @unique @map("public_id") @db.VarChar(14)
-  playSession PlaySession @relation(fields: [playId], references: [id])
-  playId      Int         @map("play_id")
-  name        String
-  history     String?
-  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz()
+  id              Int             @id @default(autoincrement())
+  publicId        String          @unique @map("public_id") @db.VarChar(14)
+  playSession     PlaySession     @relation(fields: [playId], references: [id])
+  playId          Int             @map("play_id")
+  name            String
+  history         String?
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz()
+  monarchsRecords MonarchRecord[]
 
   @@map("monarchs")
+}
+
+model MonarchRecord {
+  id                   Int                  @id @default(autoincrement())
+  monarch              Monarch              @relation(fields: [monarchId], references: [id])
+  monarchId            Int                  @map("monarch_id")
+  recordType           RecordType           @relation(fields: [recordTypeId], references: [id])
+  recordTypeId         Int                  @map("record_type_id")
+  recordDate           DateTime             @map("record_date") @db.Date
+  provinces            Int
+  totalDevelopment     Int                  @map("total_development")
+  taxIncome            Decimal              @map("tax_income") @db.Decimal(10, 2)
+  productionIncome     Decimal              @map("production_income") @db.Decimal(10, 2)
+  tradeIncome          Decimal              @map("trade_income") @db.Decimal(10, 2)
+  customsIncome        Decimal              @map("customs_income") @db.Decimal(10, 2)
+  vassalIncome         Decimal              @map("vassal_income") @db.Decimal(10, 2)
+  armyTroops           Int                  @map("army_troops")
+  navyShips            Int                  @map("navy_ships")
+  createdAt            DateTime             @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt            DateTime             @updatedAt @map("updated_at") @db.Timestamptz()
+  dependentTerritories DependentTerritory[]
+
+  @@map("monarchs_records")
+}
+
+model RecordType {
+  id              Int             @id
+  name            String          @unique @db.VarChar(20)
+  monarchsRecords MonarchRecord[]
+
+  @@map("record_types")
+}
+
+model RelationKind {
+  id                   Int                  @id
+  name                 String               @unique @db.VarChar(20)
+  dependentTerritories DependentTerritory[]
+
+  @@map("relation_kinds")
+}
+
+model DependentTerritory {
+  id             Int           @id @default(autoincrement())
+  record         MonarchRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  recordId       Int           @map("record_id")
+  relationKind   RelationKind  @relation(fields: [relationKindId], references: [id])
+  relationKindId Int           @map("relation_kind_id")
+  name           String
+
+  @@map("dependent_territories")
 }
