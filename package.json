@@ -13,6 +13,7 @@
     "@prisma/client": "^7.10.1",
     "dotenv": "^18.0.8",
     "hono": "^4.13.8",
+    "nanoid": "^6.0.2",
     "pg": "^8.23.1"
   },
   "devDependencies": {
