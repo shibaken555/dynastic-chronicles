@@ -3,7 +3,7 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator';
 import { playSessionsSchema, monarchsSchema } from "./schema.js";
 import { generatePublicId } from "./randomStringGenerator.js";
-import { createPlaySession } from "./repository.js"
+import { createPlaySession, fetchMonarchs } from "./repository.js"
 
 const app = new Hono();
 
@@ -22,6 +22,7 @@ app.post('/v1/playSessions', zValidator('json', playSessionsSchema), async (c) =
 
 app.get('/v1/monarchs/:id', async (c) => {
   const id: string = c.req.param('id');
+  const result = await fetchMonarchs();
   // TODO:prismaを使用してレコードを取得する処理を追加
   // 現時点では動作確認のために仮の値を使用
   // 今後prismaを使い指定されたIDに基づいたレコードを取得する想定
@@ -57,11 +58,11 @@ app.get('/v1/monarchs/:id', async (c) => {
       playSessionId: fetchMonarchLog.playSessionId,
       name: fetchMonarchLog.name,
       records: fetchMonarchLog.records,
-      history: fetchMonarchLog.history
+      history: fetchMonarchLog.history,
+      test: result
     }
   )
 });
-
 
 app.post('/v1/monarchs', zValidator('json', monarchsSchema), (c) => {
   const reqBody = c.req.valid('json');

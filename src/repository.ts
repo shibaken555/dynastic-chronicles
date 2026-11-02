@@ -10,3 +10,8 @@ export async function createPlaySession(publicId: string, reqBody: { title: stri
   })
   return playSession;
 };
+
+export async function fetchMonarchs() {
+  const monarchs = await prisma.monarch.findMany();
+  return monarchs;
+}
