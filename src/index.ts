@@ -3,17 +3,19 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator';
 import { playSessionsSchema, monarchsSchema } from "./schema.js";
 import { generatePublicId } from "./randomStringGenerator.js";
+import { createPlaySession } from "./repository.js"
 
 const app = new Hono();
 
-app.post('/v1/playSessions', zValidator('json', playSessionsSchema), (c) => {
+app.post('/v1/playSessions', zValidator('json', playSessionsSchema), async (c) => {
   const reqBody = c.req.valid('json');
   const publicId: string = generatePublicId("pls_");
+  const playSession = await createPlaySession(publicId, reqBody);
   return c.json(
     {
-      id: publicId,
-      title: reqBody.title,
-      country: reqBody.country,
+      id: playSession.publicId,
+      title: playSession.title,
+      country: playSession.countryName,
     }, 201
   )
 });
