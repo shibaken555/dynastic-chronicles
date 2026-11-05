@@ -4,7 +4,8 @@ import { zValidator } from '@hono/zod-validator';
 import { playSessionsSchema, monarchsSchema } from "./schema.js";
 import { generatePublicId } from "./randomStringGenerator.js";
 import { createPlaySession, fetchPlaySession, createMonarch } from "./repository.js"
-import { HTTPException } from 'hono/http-exception'
+import { HTTPException } from 'hono/http-exception';
+import { prisma } from "./lib/prisma.js";
 
 const app = new Hono();
 
@@ -66,8 +67,6 @@ app.get('/v1/monarchs/:id', async (c) => {
 
 app.post('/v1/monarchs', zValidator('json', monarchsSchema), async (c) => {
   const reqBody = c.req.valid('json');
-  // レコード作成するテーブル
-  // monarchs(playSessionIdを引数にする)
   const playSession = await fetchPlaySession(reqBody.playSessionId);
   if (playSession === null) {
     throw new HTTPException(404, { message: "指定されたプレイ記録は存在しません。" });
@@ -75,16 +74,33 @@ app.post('/v1/monarchs', zValidator('json', monarchsSchema), async (c) => {
   const playId = playSession.id;
   const publicId: string = generatePublicId("mon_");
   const monarch = await createMonarch(publicId, playId, reqBody);
-  // record_types
-  // monarchs_records(monarchs.idを引数にする)
-  // dependent_territories(monarchs_records.idを引数にする)
+  const monarchId = monarch.id;
+  // recordTypeIdは仮置きで1にしておく。後ほどDBから取得した値を参照するようにする想定
+  // TODO:recordsを配列にする必要はなかったので後ほど修正しておく
+  const monarchRecord = await prisma.monarchRecord.create({
+    data: {
+      monarchId: monarchId,
+      recordTypeId: 1,
+      recordDate: new Date(reqBody.records[0].recordedOn),
+      provinces: reqBody.records[0].metrics.provinces,
+      totalDevelopment: reqBody.records[0].metrics.totalDevelopment,
+      taxIncome: reqBody.records[0].metrics.taxIncome,
+      productionIncome: reqBody.records[0].metrics.productionIncome,
+      tradeIncome: reqBody.records[0].metrics.tradeIncome,
+      customsIncome: reqBody.records[0].metrics.customsIncome,
+      vassalIncome: reqBody.records[0].metrics.vassalIncome,
+      armyTroops: reqBody.records[0].metrics.armyTroops,
+      navyShips: reqBody.records[0].metrics.navyShips,
+    }
+  })
 
   return c.json(
     {
-      id: playSession?.id,
-      publicId: playSession?.publicId,
-      title: playSession?.title,
-      countryName: playSession?.countryName,
+      id: monarch.publicId,
+      playSessionId: playSession.publicId,
+      name: playSession.countryName,
+      records: monarchRecord,
+      history: reqBody.history
     }, 201
   )
 });
