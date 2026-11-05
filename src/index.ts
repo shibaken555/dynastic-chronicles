@@ -3,7 +3,8 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator';
 import { playSessionsSchema, monarchsSchema } from "./schema.js";
 import { generatePublicId } from "./randomStringGenerator.js";
-import { createPlaySession } from "./repository.js"
+import { createPlaySession, fetchPlaySession, createMonarch } from "./repository.js"
+import { HTTPException } from 'hono/http-exception'
 
 const app = new Hono();
 
@@ -63,21 +64,39 @@ app.get('/v1/monarchs/:id', async (c) => {
 });
 
 
-app.post('/v1/monarchs', zValidator('json', monarchsSchema), (c) => {
+app.post('/v1/monarchs', zValidator('json', monarchsSchema), async (c) => {
   const reqBody = c.req.valid('json');
+  // レコード作成するテーブル
+  // monarchs(playSessionIdを引数にする)
+  const playSession = await fetchPlaySession(reqBody.playSessionId);
+  if (playSession === null) {
+    throw new HTTPException(404, { message: "指定されたプレイ記録は存在しません。" });
+  }
+  const playId = playSession.id;
   const publicId: string = generatePublicId("mon_");
+  const monarch = await createMonarch(publicId, playId, reqBody);
+  // record_types
+  // monarchs_records(monarchs.idを引数にする)
+  // dependent_territories(monarchs_records.idを引数にする)
 
   return c.json(
     {
-      id: publicId,
-      playSessionId: reqBody.playSessionId,
-      name: reqBody.name,
-      records: reqBody.records,
-      history: reqBody.history
+      id: playSession?.id,
+      publicId: playSession?.publicId,
+      title: playSession?.title,
+      countryName: playSession?.countryName,
     }, 201
   )
 });
 
+
+app.onError((err, c) => {
+  if (err instanceof HTTPException) {
+    return c.json({ error: { message: err.message } }, err.status);
+  }
+  console.error(err);
+  return c.json({ error: { message: "サーバーでエラーが起きました" } }, 500);
+});
 
 serve({
   fetch: app.fetch,
