@@ -3,7 +3,7 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator';
 import { playSessionsSchema, monarchsSchema } from "./schema.js";
 import { generatePublicId } from "./randomStringGenerator.js";
-import { createPlaySession, fetchPlaySession, createMonarch } from "./repository.js"
+import { createPlaySession, fetchPlaySession, createMonarch,createMonarchRecord } from "./repository.js"
 import { HTTPException } from 'hono/http-exception';
 import { prisma } from "./lib/prisma.js";
 
@@ -83,22 +83,7 @@ app.post('/v1/monarchs', zValidator('json', monarchsSchema), async (c) => {
   // TODO:recordsを配列にする必要はなかったので後ほど修正しておく
   // monarchs_recordsに君主毎の詳細な記録を永続化する
   const monarchId = monarch.id;
-  const monarchRecord = await prisma.monarchRecord.create({
-    data: {
-      monarchId: monarchId,
-      recordTypeId: 1,
-      recordDate: new Date(reqBody.records[0].recordedOn),
-      provinces: reqBody.records[0].metrics.provinces,
-      totalDevelopment: reqBody.records[0].metrics.totalDevelopment,
-      taxIncome: reqBody.records[0].metrics.taxIncome,
-      productionIncome: reqBody.records[0].metrics.productionIncome,
-      tradeIncome: reqBody.records[0].metrics.tradeIncome,
-      customsIncome: reqBody.records[0].metrics.customsIncome,
-      vassalIncome: reqBody.records[0].metrics.vassalIncome,
-      armyTroops: reqBody.records[0].metrics.armyTroops,
-      navyShips: reqBody.records[0].metrics.navyShips,
-    }
-  })
+  const monarchRecord = createMonarchRecord(monarchId,reqBody);
 
   return c.json(
     {
