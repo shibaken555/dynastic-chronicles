@@ -67,16 +67,22 @@ app.get('/v1/monarchs/:id', async (c) => {
 
 app.post('/v1/monarchs', zValidator('json', monarchsSchema), async (c) => {
   const reqBody = c.req.valid('json');
+
+  // プレイ記録内の君主の記録を永続化する
+  // monarchsにレコードを作成するために、リクエストされたplaySessionIdが存在することの確認をする
   const playSession = await fetchPlaySession(reqBody.playSessionId);
   if (playSession === null) {
     throw new HTTPException(404, { message: "指定されたプレイ記録は存在しません。" });
   }
   const playId = playSession.id;
   const publicId: string = generatePublicId("mon_");
+  // monarchsにレコードを作成
   const monarch = await createMonarch(publicId, playId, reqBody);
-  const monarchId = monarch.id;
+
   // recordTypeIdは仮置きで1にしておく。後ほどDBから取得した値を参照するようにする想定
   // TODO:recordsを配列にする必要はなかったので後ほど修正しておく
+  // monarchs_recordsに君主毎の詳細な記録を永続化する
+  const monarchId = monarch.id;
   const monarchRecord = await prisma.monarchRecord.create({
     data: {
       monarchId: monarchId,
