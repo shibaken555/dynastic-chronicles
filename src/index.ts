@@ -122,6 +122,8 @@ app.post('/v1/monarchs', zValidator('json', monarchsSchema), async (c) => {
       playSessionId: playSession.publicId,
       name: playSession.countryName,
       records: monarchRecord,
+      vassals: vassals,
+      colonies: colonies,
       history: reqBody.history
     }, 201
   )
