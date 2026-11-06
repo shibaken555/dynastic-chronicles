@@ -32,7 +32,7 @@ export async function createMonarch(publicId: string, playId: number, reqBody: {
 
 export async function createMonarchRecord(monarchId: number, reqBody: {
   records: {
-    recordedOn: string | number | Date;
+    recordedOn: string;
     metrics: {
       provinces: number, totalDevelopment: number, taxIncome: number,
       productionIncome: number, tradeIncome: number, customsIncome: number, vassalIncome: number,
