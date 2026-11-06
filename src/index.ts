@@ -3,7 +3,7 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator';
 import { playSessionsSchema, monarchsSchema } from "./schema.js";
 import { generatePublicId } from "./randomStringGenerator.js";
-import { createPlaySession, fetchPlaySession, createMonarch,createMonarchRecord } from "./repository.js"
+import { createPlaySession, fetchPlaySession, createMonarch, createMonarchRecord } from "./repository.js"
 import { HTTPException } from 'hono/http-exception';
 import { prisma } from "./lib/prisma.js";
 
@@ -84,6 +84,37 @@ app.post('/v1/monarchs', zValidator('json', monarchsSchema), async (c) => {
   // monarchs_recordsに君主毎の詳細な記録を永続化する
   const monarchId = monarch.id;
   const monarchRecord = await createMonarchRecord(monarchId, reqBody);
+
+  // dependent_territories.record_idは外部キー制約が存在するので、monarchs_records.idを参照するようにする
+  // dependent_territoriesに自国の傘下に収めた国のデータを永続化する
+  const monarchRecordId = monarchRecord.id;
+
+  // dependent_territoriesは傘下に収めた国のデータを複数種類永続化する。(monarchs_recordsと1対Nの関係)
+  // 1人の君主が複数の国を傘下に収めることが想定されるため、傘下に収めた国の分だけレコードを作成する
+  // 属国・植民地をそれぞれ永続化する
+  const vassals = reqBody.records[0].vassals;
+  const colonies = reqBody.records[0].colonies;
+
+  // 君主の治世時に存在した属国を永続化する処理
+  for (let i = 0; i < vassals.length; i++) {
+    await prisma.dependentTerritory.create({
+      data: {
+        recordId: monarchRecordId,
+        relationKindId: 1,
+        name: vassals[i]
+      }
+    })
+  }
+  // 君主の治世時に存在した植民地を永続化する処理
+  for (let i = 0; i < colonies.length; i++) {
+    await prisma.dependentTerritory.create({
+      data: {
+        recordId: monarchRecordId,
+        relationKindId: 2,
+        name: vassals[i]
+      }
+    })
+  }
 
   return c.json(
     {
