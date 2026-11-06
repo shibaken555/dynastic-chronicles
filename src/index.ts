@@ -83,7 +83,7 @@ app.post('/v1/monarchs', zValidator('json', monarchsSchema), async (c) => {
   // TODO:recordsを配列にする必要はなかったので後ほど修正しておく
   // monarchs_recordsに君主毎の詳細な記録を永続化する
   const monarchId = monarch.id;
-  const monarchRecord = createMonarchRecord(monarchId,reqBody);
+  const monarchRecord = await createMonarchRecord(monarchId, reqBody);
 
   return c.json(
     {
