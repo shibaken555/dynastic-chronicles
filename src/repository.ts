@@ -58,3 +58,15 @@ export async function createMonarchRecord(monarchId: number, reqBody: {
   })
   return monarchRecord;
 };
+
+export async function createDependentTerritories(recordId: number, type: "vassals" | "colonies", name: string) {
+  const relationKind: number = type === "vassals" ? 1 : 2;
+  const dependentTerritory = await prisma.dependentTerritory.create({
+    data: {
+      recordId: recordId,
+      relationKindId: relationKind,
+      name: name
+    }
+  })
+  return dependentTerritory;
+};

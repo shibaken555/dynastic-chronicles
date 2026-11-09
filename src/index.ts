@@ -3,7 +3,7 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator';
 import { playSessionsSchema, monarchsSchema } from "./schema.js";
 import { generatePublicId } from "./randomStringGenerator.js";
-import { createPlaySession, fetchPlaySession, createMonarch, createMonarchRecord } from "./repository.js"
+import { createPlaySession, fetchPlaySession, createMonarch, createMonarchRecord, createDependentTerritories } from "./repository.js"
 import { HTTPException } from 'hono/http-exception';
 import { prisma } from "./lib/prisma.js";
 
@@ -73,13 +73,12 @@ app.post('/v1/monarchs', zValidator('json', monarchsSchema), async (c) => {
   const playSession = await fetchPlaySession(reqBody.playSessionId);
   if (playSession === null) {
     throw new HTTPException(404, { message: "指定されたプレイ記録は存在しません。" });
-  }
+  };
   const playId = playSession.id;
   const publicId: string = generatePublicId("mon_");
   // monarchsにレコードを作成
   const monarch = await createMonarch(publicId, playId, reqBody);
 
-  // recordTypeIdは仮置きで1にしておく。後ほどDBから取得した値を参照するようにする想定
   // TODO:recordsを配列にする必要はなかったので後ほど修正しておく
   // monarchs_recordsに君主毎の詳細な記録を永続化する
   const monarchId = monarch.id;
@@ -96,35 +95,45 @@ app.post('/v1/monarchs', zValidator('json', monarchsSchema), async (c) => {
   const colonies = reqBody.records[0].colonies;
 
   // 君主の治世時に存在した属国を永続化する処理
+  const createdVassals: string[] = [];
   for (let i = 0; i < vassals.length; i++) {
-    await prisma.dependentTerritory.create({
-      data: {
-        recordId: monarchRecordId,
-        relationKindId: 1,
-        name: vassals[i]
-      }
-    })
+    const dependentTerritories = await createDependentTerritories(monarchRecordId, "vassals", vassals[i]);
+    createdVassals.push(dependentTerritories.name);
   }
+
   // 君主の治世時に存在した植民地を永続化する処理
+  const createdColonies: string[] = [];
   for (let i = 0; i < colonies.length; i++) {
-    await prisma.dependentTerritory.create({
-      data: {
-        recordId: monarchRecordId,
-        relationKindId: 2,
-        name: vassals[i]
-      }
-    })
+    const dependentTerritories = await createDependentTerritories(monarchRecordId, "colonies", colonies[i]);
+    createdColonies.push(dependentTerritories.name);
   }
+
+  const records = [
+    {
+      recordedOn: monarchRecord.recordDate,
+      metrics: {
+        provinces: monarchRecord.provinces,
+        totalDevelopment: monarchRecord.totalDevelopment,
+        taxIncome: monarchRecord.taxIncome,
+        productionIncome: monarchRecord.productionIncome,
+        tradeIncome: monarchRecord.tradeIncome,
+        customsIncome: monarchRecord.customsIncome,
+        vassalIncome: monarchRecord.vassalIncome,
+        armyTroops: monarchRecord.armyTroops,
+        navyShips: monarchRecord.navyShips
+      },
+      vassals: createdVassals,
+      colonies: createdColonies
+    }
+  ]
 
   return c.json(
     {
       id: monarch.publicId,
       playSessionId: playSession.publicId,
-      name: playSession.countryName,
-      records: monarchRecord,
-      vassals: vassals,
-      colonies: colonies,
-      history: reqBody.history
+      name: monarch.name,
+      records: records,
+      history: monarch.history
     }, 201
   )
 });
