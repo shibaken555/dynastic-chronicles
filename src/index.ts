@@ -5,7 +5,6 @@ import { playSessionsSchema, monarchsSchema } from "./schema.js";
 import { generatePublicId } from "./randomStringGenerator.js";
 import { createPlaySession, fetchPlaySession, createMonarch, createMonarchRecord, createDependentTerritories } from "./repository.js"
 import { HTTPException } from 'hono/http-exception';
-import { prisma } from "./lib/prisma.js";
 
 const app = new Hono();
 
@@ -110,7 +109,7 @@ app.post('/v1/monarchs', zValidator('json', monarchsSchema), async (c) => {
 
   const records = [
     {
-      type: "ACCESSION",
+      type: reqBody.records[0].type,
       // monarchRecord.recordDateは、そのままだと年月日+時間まで含まれてしまい、不要なので必要な値のみを返却する
       recordedOn: monarchRecord.recordDate.toISOString().slice(0, 10),
       metrics: {
