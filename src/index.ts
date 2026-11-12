@@ -110,7 +110,9 @@ app.post('/v1/monarchs', zValidator('json', monarchsSchema), async (c) => {
 
   const records = [
     {
-      recordedOn: monarchRecord.recordDate,
+      type: "ACCESSION",
+      // monarchRecord.recordDateは、そのままだと年月日+時間まで含まれてしまい、不要なので必要な値のみを返却する
+      recordedOn: monarchRecord.recordDate.toISOString().slice(0, 10),
       metrics: {
         provinces: monarchRecord.provinces,
         totalDevelopment: monarchRecord.totalDevelopment,
