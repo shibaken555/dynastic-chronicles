@@ -3,7 +3,8 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator';
 import { playSessionsSchema, monarchsSchema } from "./schema.js";
 import { generatePublicId } from "./randomStringGenerator.js";
-import { createPlaySession, fetchMonarchs } from "./repository.js"
+import { createPlaySession, fetchPlaySession, fetchMonarchs, createMonarch, createMonarchRecord, createDependentTerritories } from "./repository.js"
+import { HTTPException } from 'hono/http-exception';
 
 const app = new Hono();
 
@@ -64,21 +65,90 @@ app.get('/v1/monarchs/:id', async (c) => {
   )
 });
 
-app.post('/v1/monarchs', zValidator('json', monarchsSchema), (c) => {
+
+app.post('/v1/monarchs', zValidator('json', monarchsSchema), async (c) => {
   const reqBody = c.req.valid('json');
+
+  // プレイ記録内の君主の記録を永続化する
+  // monarchsにレコードを作成するために、リクエストされたplaySessionIdが存在することの確認をする
+  const playSession = await fetchPlaySession(reqBody.playSessionId);
+  if (playSession === null) {
+    throw new HTTPException(404, { message: "指定されたプレイ記録は存在しません。" });
+  };
+  const playId = playSession.id;
   const publicId: string = generatePublicId("mon_");
+  // monarchsにレコードを作成
+  const monarch = await createMonarch(publicId, playId, reqBody);
+
+  // TODO:recordsを配列にする必要はなかったので後ほど修正しておく
+  // monarchs_recordsに君主毎の詳細な記録を永続化する
+  const monarchId = monarch.id;
+  const monarchRecord = await createMonarchRecord(monarchId, reqBody);
+
+  // dependent_territories.record_idは外部キー制約が存在するので、monarchs_records.idを参照するようにする
+  // dependent_territoriesに自国の傘下に収めた国のデータを永続化する
+  const monarchRecordId = monarchRecord.id;
+
+  // dependent_territoriesは傘下に収めた国のデータを複数種類永続化する。(monarchs_recordsと1対Nの関係)
+  // 1人の君主が複数の国を傘下に収めることが想定されるため、傘下に収めた国の分だけレコードを作成する
+  // 属国・植民地をそれぞれ永続化する
+  const vassals = reqBody.records[0].vassals;
+  const colonies = reqBody.records[0].colonies;
+
+  // 君主の治世時に存在した属国を永続化する処理
+  const createdVassals: string[] = [];
+  for (let i = 0; i < vassals.length; i++) {
+    const dependentTerritories = await createDependentTerritories(monarchRecordId, "vassals", vassals[i]);
+    createdVassals.push(dependentTerritories.name);
+  }
+
+  // 君主の治世時に存在した植民地を永続化する処理
+  const createdColonies: string[] = [];
+  for (let i = 0; i < colonies.length; i++) {
+    const dependentTerritories = await createDependentTerritories(monarchRecordId, "colonies", colonies[i]);
+    createdColonies.push(dependentTerritories.name);
+  }
+
+  const records = [
+    {
+      type: reqBody.records[0].type,
+      // monarchRecord.recordDateは、そのままだと年月日+時間まで含まれてしまい、不要なので必要な値のみを返却する
+      recordedOn: monarchRecord.recordDate.toISOString().slice(0, 10),
+      metrics: {
+        provinces: monarchRecord.provinces,
+        totalDevelopment: monarchRecord.totalDevelopment,
+        taxIncome: monarchRecord.taxIncome,
+        productionIncome: monarchRecord.productionIncome,
+        tradeIncome: monarchRecord.tradeIncome,
+        customsIncome: monarchRecord.customsIncome,
+        vassalIncome: monarchRecord.vassalIncome,
+        armyTroops: monarchRecord.armyTroops,
+        navyShips: monarchRecord.navyShips
+      },
+      vassals: createdVassals,
+      colonies: createdColonies
+    }
+  ]
 
   return c.json(
     {
-      id: publicId,
-      playSessionId: reqBody.playSessionId,
-      name: reqBody.name,
-      records: reqBody.records,
-      history: reqBody.history
+      id: monarch.publicId,
+      playSessionId: playSession.publicId,
+      name: monarch.name,
+      records: records,
+      history: monarch.history
     }, 201
   )
 });
 
+
+app.onError((err, c) => {
+  if (err instanceof HTTPException) {
+    return c.json({ error: { message: err.message } }, err.status);
+  }
+  console.error(err);
+  return c.json({ error: { message: "サーバーでエラーが起きました" } }, 500);
+});
 
 serve({
   fetch: app.fetch,
