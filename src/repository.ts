@@ -11,10 +11,13 @@ export async function createPlaySession(publicId: string, reqBody: { title: stri
   return playSession;
 };
 
-export async function fetchMonarchs() {
-  const monarchs = await prisma.monarch.findMany();
-  return monarchs;
-}
+export async function fetchMonarch(id: string) {
+  const monarch = await prisma.monarch.findUnique({
+    where: { publicId: id }
+  })
+  return monarch;
+};
+
 export async function fetchPlaySession(publicId: string) {
   const playSession = await prisma.playSession.findUnique({
     where: { publicId: publicId }
