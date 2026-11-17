@@ -13,7 +13,14 @@ export async function createPlaySession(publicId: string, reqBody: { title: stri
 
 export async function fetchMonarch(id: string) {
   const monarch = await prisma.monarch.findUnique({
-    where: { publicId: id }
+    where: { publicId: id },
+    include: {
+      monarchsRecords: {
+        include: {
+          dependentTerritories: true,
+        }
+      }
+    }
   })
   return monarch;
 };
