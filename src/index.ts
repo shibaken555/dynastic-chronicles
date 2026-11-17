@@ -3,7 +3,7 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator';
 import { playSessionsSchema, monarchsSchema } from "./schema.js";
 import { generatePublicId } from "./randomStringGenerator.js";
-import { createPlaySession, fetchPlaySession, fetchMonarchs, createMonarch, createMonarchRecord, createDependentTerritories } from "./repository.js"
+import { createPlaySession, fetchPlaySession, fetchMonarch, createMonarch, createMonarchRecord, createDependentTerritories } from "./repository.js"
 import { HTTPException } from 'hono/http-exception';
 
 const app = new Hono();
@@ -23,44 +23,53 @@ app.post('/v1/playSessions', zValidator('json', playSessionsSchema), async (c) =
 
 app.get('/v1/monarchs/:id', async (c) => {
   const id: string = c.req.param('id');
-  const result = await fetchMonarchs();
-  // TODO:prismaを使用してレコードを取得する処理を追加
-  // 現時点では動作確認のために仮の値を使用
-  // 今後prismaを使い指定されたIDに基づいたレコードを取得する想定
-  const fetchMonarchLog =
-  {
-    id: "mon_f6g7h8i9j0",
-    playSessionId: "pls_a1b2c3d4e5",
-    name: "Carlos I",
-    records: [
-      {
-        type: "ACCESSION",
-        recordedOn: "1516-01-23",
-        metrics: {
-          provinces: 42,
-          totalDevelopment: 462,
-          taxIncome: 24.50,
-          productionIncome: 15.80,
-          tradeIncome: 18.20,
-          customsIncome: 4.10,
-          vassalIncome: 3.40,
-          armyTroops: 42000,
-          navyShips: 38
-        },
-        vassals: ["アラゴン"],
-        colonies: []
-      }
-    ],
-    history: "APIとして制限を設ける理由はないので、書いても書かなくても良い"
+  const monarch = await fetchMonarch(id);
+  if (monarch === null) {
+    throw new HTTPException(404, { message: "指定された君主は存在しません。" });
   }
+
+  // vassalsとcoloniesは、それぞれmonarchs_recordsに対して1体Nであるため、それぞれを格納する関数を作成して返却するようにする
+  const vassals = [];
+  const colonies = [];
+  // monarchs_recordsに付随するvassalsとcoloniesのレコード
+  const dependentTerritories = monarch.monarchsRecords[0].dependentTerritories;
+
+  for (let i = 0; i < dependentTerritories.length; i++) {
+    // relation_kinds=1 VASSAL
+    // relation_kinds=2 COLONY
+    if (dependentTerritories[i].relationKindId === 1) {
+      vassals.push(dependentTerritories[i].name);
+    } else {
+      colonies.push(dependentTerritories[i].name);
+    };
+  };
+
+  const record = [
+    {
+      type: monarch.monarchsRecords[0].recordType.name,
+      recordedOn: monarch.monarchsRecords[0].recordDate.toISOString().slice(0, 10),
+      metrics: {
+        provinces: monarch.monarchsRecords[0].provinces,
+        totalDevelopment: monarch.monarchsRecords[0].totalDevelopment,
+        taxIncome: monarch.monarchsRecords[0].taxIncome,
+        productionIncome: monarch.monarchsRecords[0].productionIncome,
+        tradeIncome: monarch.monarchsRecords[0].tradeIncome,
+        customsIncome: monarch.monarchsRecords[0].customsIncome,
+        vassalIncome: monarch.monarchsRecords[0].vassalIncome,
+        armyTroops: monarch.monarchsRecords[0].armyTroops,
+        navyShips: monarch.monarchsRecords[0].navyShips
+      },
+      vassals: vassals,
+      colonies: colonies
+    }
+  ]
   return c.json(
     {
-      id: fetchMonarchLog.id,
-      playSessionId: fetchMonarchLog.playSessionId,
-      name: fetchMonarchLog.name,
-      records: fetchMonarchLog.records,
-      history: fetchMonarchLog.history,
-      test: result
+      id: monarch.publicId,
+      playSessionId: monarch.playId,
+      name: monarch.name,
+      records: record,
+      history: monarch.history
     }
   )
 });
