@@ -17,6 +17,7 @@ export async function fetchMonarch(id: string) {
     include: {
       monarchsRecords: {
         include: {
+          recordType:true,
           dependentTerritories: true,
         }
       }
